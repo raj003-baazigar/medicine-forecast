@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Forecast CSV Results (2026)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0a1423;
+      --fg: #f0f0f0;
+      --muted: #a0aec0;
+      --card: rgba(255,255,255,0.05);
+      --border: rgba(255,255,255,0.12);
+      --accent: #3b82f6;
+      --link: #93c5fd;
+    }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Poppins',sans-serif; background:var(--bg); color:var(--fg); }
+    .wrap { max-width:1100px; margin:0 auto; padding:24px 16px; }
+    a { color:var(--link); text-decoration:none; }
+    h1 { margin:8px 0 4px; font-weight:600; }
+    p.muted { color:var(--muted); margin:0 0 16px; }
+    .topbar { display:flex; align-items:center; gap:12px; margin-bottom:8px; }
+    .back { padding:6px 10px; border:1px solid var(--border); border-radius:8px; }
+    .card { background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { padding:10px; text-align:center; border-bottom:1px solid var(--border); }
+    th { position:sticky; top:0; background:var(--accent); color:#fff; font-weight:600; }
+    td:first-child, th:first-child { text-align:left; }
+    .empty { color:var(--muted); text-align:center; padding:24px; }
+    .kpis { display:flex; gap:12px; flex-wrap:wrap; margin: 8px 0 16px; }
+    .kpi { flex:1 1 220px; background:var(--card); border:1px solid var(--border); border-radius:12px; padding:12px; }
+    .kpi .label { color:var(--muted); font-size:12px; }
+    .kpi .value { font-size:20px; font-weight:600; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="topbar">
+      <a class="back" href="/dashboard">← Back to Dashboard</a>
+      <h1>📊 Forecast Summary (CSV · 2026)</h1>
+    </div>
+    <p class="muted">Loaded from <code>forecast_summary_2026.csv</code> (or <code>forecast_summary_2026 (1).csv</code>). Values shown per country.</p>
+
+    {% if not rows %}
+      <div class="card empty">No CSV data loaded.</div>
+    {% else %}
+      <!-- Small KPIs -->
+      <div class="kpis">
+        <div class="kpi">
+          <div class="label">Countries Loaded</div>
+          <div class="value">{{ rows|length }}</div>
+        </div>
+        <div class="kpi">
+          <div class="label">Top Annual (Country)</div>
+          {% set top = rows[0] if rows and rows[0] else None %}
+          {% if top %}
+            <div class="value">{{ top[0] }}</div>
+          {% else %}
+            <div class="value">—</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card">
+        <div style="overflow:auto; max-height:70vh; border-radius:8px;">
+          <table>
+            <thead>
+              <tr>
+                <th>Country</th>
+                <th>Total Annual</th>
+                <th>Avg Daily</th>
+                <th>Demand Freq (%)</th>
+                <th>Monthly Avg</th>
+                <th>Quarterly Avg</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for country, stats in rows %}
+                {% set annual = stats.get('annual') %}
+                {% set monthly = stats.get('monthly_avg') %}
+                {% set quarterly = stats.get('quarterly_avg') %}
+                <tr>
+                  <td>{{ country }}</td>
+                  <td>
+                    {% if annual is not none %}
+                      {{ annual }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td>
+                    {% if stats.get('avg_daily') is not none %}
+                      {{ stats.get('avg_daily') }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <td>
+                    {% if stats.get('freq') is not none %}
+                      {{ stats.get('freq') }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <!-- Monthly Avg with fallback to annual/12 -->
+                  <td>
+                    {% if monthly is not none %}
+                      {{ monthly }}
+                    {% elif annual is not none %}
+                      {{ (annual / 12) | round(2) }}
+                    {% else %}—{% endif %}
+                  </td>
+                  <!-- Quarterly Avg with fallback to annual/4 -->
+                  <td>
+                    {% if quarterly is not none %}
+                      {{ quarterly }}
+                    {% elif annual is not none %}
+                      {{ (annual / 4) | round(2) }}
+                    {% else %}—{% endif %}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Map - MedPredict</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body, html { margin: 0; font-family: 'Poppins', sans-serif; height: 100%; background-color: #0a1423; }
+        .map-container { position: relative; }
+        #map { height: calc(100vh - 57px); width: 100%; background-color: transparent; position: relative; z-index: 1; }
+        .bg-container-map::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(125deg, rgba(10, 20, 35, 0.7), rgba(21, 32, 80, 0.7), rgba(45, 21, 80, 0.7), rgba(10, 20, 35, 0.7));
+            background-size: 400% 400%; z-index: 0; animation: animateBg 20s ease infinite;
+        }
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 1rem 2rem; background-color: #1a2230;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative; z-index: 1000;
+        }
+        .navbar-brand { font-size: 1.5rem; font-weight: 600; color: #ffffff; text-decoration: none; }
+        .nav-links { display: flex; align-items: center; }
+        .nav-links a { color: #fff; text-decoration: none; margin-left: 20px; font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover:not(.btn-logout) { color: #3b82f6; }
+        .btn-logout { background-color: #dc3545; padding: 8px 16px; border-radius: 5px; transition: all 0.3s ease; }
+        @keyframes animateBg { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <a class="navbar-brand" href="/">MedPredict</a>
+        <div class="nav-links">
+            <a href="/dashboard">Dashboard</a>
+            <a href="/history">History</a>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </div>
+    </nav>
+    <div class="map-container">
+        <div class="bg-container-map"></div>
+        <div id="map"></div>
+    </div>
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        const map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        }).addTo(map);
+
+        Promise.all([
+            fetch('/map_data').then(response => response.json()),
+            fetch("{{ url_for('static', filename='data/countries.geojson') }}").then(response => response.json())
+        ]).then(([predictionData, geojsonData]) => {
+            L.geoJson(geojsonData, {
+                style: feature => ({
+                    fillColor: getColor(predictionData[feature.properties.ADMIN] || 0),
+                    weight: 1, opacity: 1, color: 'white', dashArray: '3', fillOpacity: 0.7
+                }),
+                onEachFeature: (feature, layer) => {
+                    const countryName = feature.properties.ADMIN;
+                    const demand = predictionData[countryName];
+                    let popupContent = `<b>${countryName}</b><br/>${demand ? `Predicted Demand: ${demand.toLocaleString()} units` : 'No prediction data'}`;
+                    layer.bindPopup(popupContent);
+                }
+            }).addTo(map);
+        });
+        function getColor(d) {
+            return d > 10000 ? '#800026' : d > 5000  ? '#BD0026' : d > 2000  ? '#E31A1C' : d > 1000  ? '#FC4E2A' : d > 500   ? '#FD8D3C' : d > 100   ? '#FEB24C' : d > 0     ? '#FED976' : '#555555';
+        }
+    </script>
+</body>
+</html>

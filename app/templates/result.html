@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediction Result - MedPredict</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body, html { margin: 0; font-family: 'Poppins', sans-serif; height: 100%; }
+        .bg-container {
+            background-image: url("{{ url_for('static', filename='images/Dasboard.jpg') }}");
+            background-position: center; background-repeat: no-repeat; background-size: cover;
+            min-height: 100vh; position: relative; overflow-x: hidden;
+        }
+        .bg-container::before {
+            content: ""; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(125deg, rgba(10, 20, 35, 0.7), rgba(21, 32, 80, 0.7), rgba(45, 21, 80, 0.7), rgba(10, 20, 35, 0.7));
+            background-size: 400% 400%; z-index: 1; animation: animateBg 20s ease infinite;
+        }
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;
+            background-color: rgba(15, 23, 42, 0.6); border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative; z-index: 2; backdrop-filter: blur(10px);
+        }
+        .navbar-brand { font-size: 1.5rem; font-weight: 600; color: #ffffff; text-decoration: none; }
+        .btn-logout { text-decoration: none; color: #fff; background-color: #dc3545; padding: 8px 16px; border-radius: 5px; transition: all 0.3s ease; }
+        .container { display: flex; justify-content: center; align-items: center; padding: 50px 20px; position: relative; z-index: 2; }
+        .result-card {
+            background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            width: 100%; max-width: 800px; color: #e0e0e0; text-align: center;
+            opacity: 0; animation: slide-in-bottom 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) 0.3s forwards;
+        }
+        .result-card h2 { font-weight: 600; color: #ffffff; margin-top: 0; margin-bottom: 10px; }
+        .prediction-display { background-color: rgba(0, 0, 0, 0.2); border-radius: 8px; padding: 20px; margin: 25px 0; }
+        .prediction-display .label { font-size: 1.1rem; color: #c0c0c0; margin-bottom: 5px; }
+        .prediction-display .value { font-size: 2.5rem; font-weight: 700; color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        .charts-wrapper { display: flex; justify-content: space-around; align-items: center; gap: 40px; margin-top: 30px; }
+        .chart-container { position: relative; height: 250px; width: 45%; }
+        .gauge-container { position: relative; height: 250px; width: 45%; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+        .gauge-label { font-size: 1.5rem; font-weight: 600; }
+        .history-chart-container { margin-top: 40px; height: 300px; }
+        .btn-back { text-decoration: none; display: inline-block; margin-top: 30px; padding: 12px 30px; background-color: transparent; border: 2px solid #fff; color: white; font-size: 1rem; font-weight: 500; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; }
+        .btn-back:hover { background-color: #fff; color: #000; transform: translateY(-2px); }
+        @keyframes animateBg { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        @keyframes slide-in-bottom { from { opacity: 0; transform: translateY(50px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="bg-container">
+        <nav class="navbar">
+            <a class="navbar-brand" href="/">MedPredict</a>
+            <a href="/logout" class="btn-logout">Logout</a>
+        </nav>
+        <div class="container">
+            <div class="result-card">
+                <h2>Prediction Result</h2>
+                <div class="prediction-display">
+                    <div class="label">Estimated demand for {{ medicine }} in {{ country }}</div>
+                    <div class="value">{{ prediction }}</div>
+                </div>
+                <div class="charts-wrapper">
+                    <div class="chart-container">
+                        <canvas id="predictionChart"></canvas>
+                    </div>
+                    <div class="gauge-container">
+                        <canvas id="gaugeChart"></canvas>
+                        <div id="gaugeLabel" class="gauge-label"></div>
+                    </div>
+                </div>
+                <div class="history-chart-container">
+                    <canvas id="historyChart"></canvas>
+                </div>
+                <a href="/dashboard" class="btn-back">Make Another Prediction</a>
+            </div>
+        </div>
+    </div>
+    <script>
+        const medicine = "{{ medicine }}";
+        const predictionString = "{{ prediction }}";
+        const predictedValue = parseFloat(predictionString.replace(/,/g, ''));
+        
+        // --- THIS IS THE FIX ---
+        // We remove JSON.parse and the single quotes
+        const historyLabels = {{ history_labels | tojson | safe }};
+        const historyValues = {{ history_values | tojson | safe }};
+
+        // Bar Chart
+        const barCtx = document.getElementById('predictionChart').getContext('2d');
+        new Chart(barCtx, { type: 'bar', data: { labels: [medicine], datasets: [{ label: 'Predicted Demand (units)', data: [predictedValue], backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: 'rgba(59, 130, 246, 1)', borderWidth: 1 }] }, options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { color: 'rgba(255, 255, 255, 0.7)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: 'rgba(255, 255, 255, 0.7)' }, grid: { display: false } } }, plugins: { legend: { labels: { color: 'rgba(255, 255, 255, 0.7)' } } } } });
+
+        // Gauge Chart
+        const gaugeCtx = document.getElementById('gaugeChart').getContext('2d');
+        const gaugeLabel = document.getElementById('gaugeLabel');
+        let demandLevel, levelColor, gaugeData;
+        if (predictedValue <= 2000) { demandLevel = 'Low'; levelColor = '#28a745'; gaugeData = [predictedValue, 2000 - predictedValue]; } else if (predictedValue <= 8000) { demandLevel = 'Medium'; levelColor = '#ffc107'; gaugeData = [predictedValue, 8000 - predictedValue]; } else { demandLevel = 'High'; levelColor = '#dc3545'; gaugeData = [predictedValue, 0]; }
+        gaugeLabel.textContent = demandLevel;
+        gaugeLabel.style.color = levelColor;
+        new Chart(gaugeCtx, { type: 'doughnut', data: { datasets: [{ data: gaugeData, backgroundColor: [levelColor, 'rgba(255, 255, 255, 0.1)'], borderColor: 'transparent', borderWidth: 0 }] }, options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { display: false }, tooltip: { enabled: false } } } });
+
+        // Historical Trend Line Chart
+        const historyCtx = document.getElementById('historyChart').getContext('2d');
+        new Chart(historyCtx, {
+            type: 'line',
+            data: {
+                labels: historyLabels,
+                datasets: [{
+                    label: `Historical Demand for ${medicine}`,
+                    data: historyValues,
+                    fill: true,
+                    backgroundColor: 'rgba(59, 130, 246, 0.2)',
+                    borderColor: 'rgba(59, 130, 246, 1)',
+                    tension: 0.1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: { y: { beginAtZero: true, ticks: { color: 'rgba(255, 255, 255, 0.7)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: 'rgba(255, 255, 255, 0.7)' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } } },
+                plugins: { legend: { labels: { color: 'rgba(255, 255, 255, 0.7)' } } }
+            }
+        });
+    </script>
+</body>
+</html>
+

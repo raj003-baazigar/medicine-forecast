@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - MedPredict</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #00ffff;
+            --dark-bg: #0a1423;
+            --card-bg: rgba(15, 23, 42, 0.75);
+        }
+        body, html {
+            margin: 0; padding: 0; font-family: 'Poppins', sans-serif;
+            height: 100%; overflow: hidden; background-color: var(--dark-bg);
+        }
+        .dashboard-container { position: relative; width: 100%; height: 100vh; }
+        #globe-container { 
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1;
+        }
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;
+            background-color: rgba(15, 23, 42, 0.7); border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: absolute; top: 0; left: 0; right: 0; z-index: 1001; backdrop-filter: blur(10px);
+        }
+        .navbar-brand { font-size: 1.5rem; font-weight: 600; color: #ffffff; text-decoration: none; }
+        .nav-links { display: flex; align-items: center; }
+        .nav-links a { color: #fff; text-decoration: none; margin-left: 20px; font-weight: 500; transition: color 0.3s; }
+        .nav-links a:hover:not(.btn-logout) { color: var(--primary-color); }
+        .btn-logout { text-decoration: none; color: #fff; background-color: #dc3545; padding: 8px 16px; border-radius: 5px; transition: all 0.3s ease; }
+        
+        .floating-panel {
+            position: absolute; z-index: 1000;
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+            color: #e0e0e0; padding: 25px;
+            animation: fadeIn 1s ease-out forwards;
+        }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        .form-panel { top: 100px; left: 30px; width: 380px; }
+        .stats-panel { bottom: 30px; left: 30px; width: 380px; animation-delay: 0.2s; }
+        .quote-panel { top: 100px; right: 30px; width: 300px; animation-delay: 0.4s; }
+        .ticker-panel { bottom: 30px; right: 30px; width: 300px; height: 250px; padding: 0; animation-delay: 0.6s; }
+
+        .panel-title { font-weight: 600; margin-top: 0; margin-bottom: 20px; color: #fff; text-align: center; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 500; font-size: 0.9rem; }
+        .form-control { width: 100%; padding: 10px; background-color: rgba(0, 0, 0, 0.3); border: 1px solid rgba(255, 255, 255, 0.2); color: #ffffff; border-radius: 5px; font-size: 1rem; box-sizing: border-box; }
+        .btn-predict { width: 100%; padding: 12px; border: none; background: linear-gradient(90deg, #00c6ff, #0072ff); color: white; font-size: 1rem; font-weight: 600; border-radius: 5px; cursor: pointer; transition: all 0.3s ease; margin-top: 10px; }
+
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .stat-item { background: rgba(0, 0, 0, 0.2); padding: 15px; border-radius: 8px; text-align: center; }
+        .stat-value { font-size: 1.8rem; font-weight: 600; color: var(--primary-color); }
+        .stat-label { font-size: 0.8rem; color: #a0aec0; }
+        
+        .quote-text { font-style: italic; color: #a0aec0; margin-bottom: 10px; }
+        .quote-author { text-align: right; font-weight: 500; color: #fff; }
+
+        .ticker-header { padding: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); }
+        .ticker-header h4 { margin: 0; font-size: 1rem; }
+        .ticker-list-container { height: calc(100% - 50px); overflow: hidden; position: relative; }
+        .ticker-list { list-style: none; padding: 0; margin: 0; position: absolute; width: 100%; animation: scroll-up 20s linear infinite; }
+        .ticker-item { display: flex; justify-content: space-between; padding: 8px 15px; font-size: 0.85rem; border-bottom: 1px solid rgba(255, 255, 255, 0.05); }
+        .ticker-item .value { font-weight: 600; color: #48bb78; }
+        .ticker-item .value.down { color: #f56565; }
+        .ticker-item .details { color: #a0aec0; }
+        @keyframes scroll-up { from { transform: translateY(0); } to { transform: translateY(-50%); } }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <nav class="navbar">
+            <a class="navbar-brand" href="/">MedPredict</a>
+            <div class="nav-links">
+                {% if current_user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+                 
+                
+                <a href="/csv_results">Baysein Results</a>
+                <a href="/history">History</a>
+                <a href="/map">Map View</a>
+                <a href="/logout" class="btn-logout">Logout</a>
+            </div>
+        </nav>
+        <div id="globe-container"></div>
+
+        <div class="floating-panel form-panel">
+            <h2 class="panel-title">Forecast Demand</h2>
+            <form action="/predict" method="POST" autocomplete="off">
+                       <div class="form-card-container">
+            <div class="form-card">
+                <h2>Forecast Demand</h2>
+                <form action="/predict" method="POST" autocomplete="off" onsubmit="showSpinner()">
+                    <div class="form-group">
+                        <label for="country">Country</label>
+                        <select id="country" name="country" class="form-control" required>
+                            <option value="" disabled selected>Select a country...</option>
+                            <option value="Bangladesh">Bangladesh</option>
+                            <option value="Benin">Benin</option>
+                            <option value="Burkina Faso">Burkina Faso</option>
+                            <option value="Congo DRC">Congo DRC</option>
+                            <option value="Ghana">Ghana</option>
+                            <option value="Haiti">Haiti</option>
+                            <option value="Malawi">Malawi</option>
+                            <option value="Mali">Mali</option>
+                            <option value="Rwanda">Rwanda</option>
+                            <option value="Senegal">Senegal</option>
+                            <option value="Tanzania">Tanzania</option>
+                            <option value="Togo">Togo</option>
+                            <option value="Uganda">Uganda</option>
+                            <option value="Zambia">Zambia</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="medicine">Medicine (Product Type)</label>
+                        <select id="medicine" name="medicine" class="form-control" required>
+                            <option value="Family Planning and Reproduction">Family Planning and Reproduction</option>
+                        </select>
+                        <label for="year">Forecast Year</label>
+                        <select id="year" name="year" class="form-control" required>
+                           
+                            <option value="2026" selected>2026</option>
+                            
+                            
+                        </select>
+
+  
+                    </div>
+                    <button type="submit" class="btn-predict">
+                        <span class="button-text">Predict</span>
+                        <div class="spinner"></div>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+                <button type="submit" class="btn-predict">Predict</button>
+            </form>
+        </div>
+
+        <div class="floating-panel stats-panel">
+            <h2 class="panel-title">Your Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-item"><div class="stat-value">{{ total_predictions }}</div><div class="stat-label">Total Predictions</div></div>
+                <div class="stat-item"><div class="stat-value">{{ unique_countries }}</div><div class="stat-label">Countries Analyzed</div></div>
+                <div class="stat-item" style="grid-column: 1 / -1;"><div class="stat-value">{{ most_predicted_medicine }}</div><div class="stat-label">Most Forecasted Medicine</div></div>
+            </div>
+        </div>
+
+        <div class="floating-panel quote-panel">
+            <p class="quote-text">"{{ quote.text }}"</p>
+            <p class="quote-author">- {{ quote.author }}</p>
+        </div>
+
+        <div class="floating-panel ticker-panel">
+            <div class="ticker-header"><h4>Live Global Feed</h4></div>
+            <div class="ticker-list-container">
+                <ul class="ticker-list" id="ticker-list">
+                    <li class="ticker-item"><span class="value">+1,500</span> <span class="details">Malaria | Nigeria</span></li>
+                    <li class="ticker-item"><span class="value down">-300</span> <span class="details">COVID-19 | Germany</span></li>
+                    <li class="ticker-item"><span class="value">+8,200</span> <span class="details">AIDS | South Africa</span></li>
+                    <li class="ticker-item"><span class="value">+500</span> <span class="details">Influenza | USA</span></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- 3D Globe Logic ---
+        const container = document.getElementById('globe-container');
+        let scene, camera, renderer, globe, stars;
+        function initGlobe() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 12;
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
+            const globeMaterial = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.03 });
+            globe = new THREE.Points(globeGeometry, globeMaterial);
+            scene.add(globe);
+            const starGeometry = new THREE.BufferGeometry();
+            const starVertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                if(Math.sqrt(x*x + y*y + z*z) > 100) starVertices.push(x, y, z);
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+            stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+        }
+        function animateGlobe() {
+            requestAnimationFrame(animateGlobe);
+            globe.rotation.y += 0.001;
+            stars.rotation.y += 0.0001;
+            renderer.render(scene, camera);
+        }
+        initGlobe();
+        animateGlobe();
+
+        // Ticker Logic
+        const tickerList = document.getElementById('ticker-list');
+        const items = tickerList.innerHTML;
+        tickerList.innerHTML += items;
+    </script>
+
+    {% if top5_csv %}
+<div class="card" style="background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); border-radius:12px; padding:16px; margin:16px 0;">
+  <div style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 style="margin:0;">2026 Priors (CSV)</h3>
+    <a href="/csv_results" style="color:#93c5fd; text-decoration:none;">View all →</a>
+  </div>
+  <table style="width:100%; border-collapse:collapse; margin-top:12px;">
+    <thead>
+      <tr>
+        <th style="text-align:left; padding:8px; border-bottom:1px solid rgba(255,255,255,0.12);">Country</th>
+        <th style="text-align:center; padding:8px; border-bottom:1px solid rgba(255,255,255,0.12);">Annual</th>
+        <th style="text-align:center; padding:8px; border-bottom:1px solid rgba(255,255,255,0.12);">Avg Daily</th>
+        <th style="text-align:center; padding:8px; border-bottom:1px solid rgba(255,255,255,0.12);">Freq</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for country, stats in top5_csv %}
+      <tr>
+        <td style="padding:8px; border-bottom:1px solid rgba(255,255,255,0.08);">{{ country }}</td>
+        <td style="padding:8px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.08);">{{ stats.get('annual','') }}</td>
+        <td style="padding:8px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.08);">{{ stats.get('avg_daily','') }}</td>
+        <td style="padding:8px; text-align:center; border-bottom:1px solid rgba(255,255,255,0.08);">{{ stats.get('freq','') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endif %}
+
+</body>
+</html>

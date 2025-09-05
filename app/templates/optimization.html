@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Bayesian Optimization Results</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Poppins', sans-serif; background:#0a1423; color:#f0f0f0; margin:0; padding:24px; }
+    a { color:#93c5fd; text-decoration:none; }
+    .wrap { max-width:1100px; margin:0 auto; }
+    h1 { margin: 0 0 10px; }
+    .muted { color:#a0aec0; font-size: 13px; }
+    .card { background: rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 16px; margin: 16px 0; }
+    table { width:100%; border-collapse: collapse; }
+    th, td { padding:10px; border-bottom:1px solid rgba(255,255,255,0.1); text-align:left; vertical-align: top; }
+    th { color:#93c5fd; }
+    pre { white-space: pre-wrap; word-break: break-word; }
+    .error { color:#ef4444; }
+    .row-pill { background: rgba(255,255,255,0.06); padding:8px 10px; border-radius:8px; margin:6px 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <a href="/dashboard">← Back</a>
+    <h1>Bayesian Optimization Results</h1>
+    <p class="muted">If the file doesn’t load, click <a href="/optimization?reload=1">reload</a> after fixing the file or installing missing libs.</p>
+
+    {% if error %}
+      <div class="card">
+        <h2 class="error">Error</h2>
+        <p>{{ error }}</p>
+      </div>
+    {% endif %}
+
+    {% if best %}
+      <div class="card">
+        <h2>Best Result{% if best.source %} <small class="muted">({{ best.source }})</small>{% endif %}</h2>
+        {% if best.value is not none %}<p><b>Best value:</b> {{ best.value }}</p>{% endif %}
+        {% if best.params %}
+          <p><b>Best params:</b></p>
+          <pre>{{ best.params | tojson(indent=2) }}</pre>
+        {% endif %}
+      </div>
+    {% endif %}
+
+    <div class="card">
+      <h2>Trials / Results</h2>
+      {% if rows and rows[0] and rows[0].keys %}
+        <table>
+          <thead>
+            <tr>
+              {% for k in rows[0].keys() %}
+                <th>{{ k }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in rows %}
+              <tr>
+                {% for k in rows[0].keys() %}
+                  <td>
+                    {% if r[k] is mapping or r[k] is sequence %}
+                      <pre>{{ r[k] | tojson(indent=2) }}</pre>
+                    {% else %}
+                      {{ r[k] }}
+                    {% endif %}
+                  </td>
+                {% endfor %}
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <p class="muted">No rows to display.</p>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - MedPredict</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Poppins', sans-serif;
+            height: 100%;
+            overflow: hidden;
+            background-color: #0a1423;
+        }
+        .bg-container {
+            position: relative;
+            height: 100vh;
+            width: 100vw;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #circuit-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .form-card {
+            position: relative;
+            z-index: 2;
+            background-color: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 400px;
+            animation: fade-in 0.8s ease-out forwards;
+        }
+        .form-card h2 {
+            text-align: center;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 30px;
+            color: #fff;
+        }
+        .form-group {
+            position: relative;
+            margin-bottom: 30px;
+        }
+        .form-control {
+            width: 100%;
+            padding: 10px 0;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            font-size: 1rem;
+            box-sizing: border-box;
+            transition: border-color 0.3s ease;
+        }
+        .form-control:focus {
+            outline: none;
+            border-bottom-color: #00ffff;
+        }
+        .form-control:focus ~ label,
+        .form-control:valid ~ label {
+            top: -20px;
+            font-size: 0.8rem;
+            color: #00ffff;
+        }
+        .form-group label {
+            position: absolute;
+            top: 10px;
+            left: 0;
+            color: rgba(255, 255, 255, 0.5);
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+        .btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            background: linear-gradient(90deg, #00c6ff, #0072ff);
+            color: white;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+        .btn:hover {
+            box-shadow: 0 8px 20px rgba(0, 198, 255, 0.3);
+            transform: translateY(-2px);
+        }
+        .switch-form {
+            text-align: center;
+            margin-top: 20px;
+            color: #a0aec0;
+        }
+        .switch-form a {
+            color: #00c6ff;
+            font-weight: 500;
+            text-decoration: none;
+        }
+        @keyframes fade-in {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-container">
+        <canvas id="circuit-canvas"></canvas>
+        <div class="form-card">
+            <h2>Create an Account</h2>
+            <form method="POST" autocomplete="off">
+                <div class="form-group">
+                    <input type="email" id="email" name="email" class="form-control" required>
+                    <label for="email">Email Address</label>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="password" name="password" class="form-control" required>
+                    <label for="password">Password</label>
+                </div>
+                <button type="submit" class="btn">Register</button>
+            </form>
+            <p class="switch-form">
+                Already have an account? <a href="/login">Login here</a>
+            </p>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('circuit-canvas');
+        const ctx = canvas.getContext('2d');
+        let width, height, nodes, signals;
+
+        function setup() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            nodes = [];
+            signals = [];
+            const nodeCount = Math.floor((width * height) / 25000);
+            for (let i = 0; i < nodeCount; i++) {
+                nodes.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: Math.random() * 2 + 1
+                });
+            }
+        }
+
+        class Signal {
+            constructor() {
+                this.startNode = nodes[Math.floor(Math.random() * nodes.length)];
+                this.endNode = nodes[Math.floor(Math.random() * nodes.length)];
+                this.progress = 0;
+                this.speed = Math.random() * 0.01 + 0.005;
+                this.color = `hsla(${Math.random() * 60 + 180}, 100%, 70%, 0.8)`;
+            }
+            draw() {
+                const x = this.startNode.x + (this.endNode.x - this.startNode.x) * this.progress;
+                const y = this.startNode.y + (this.endNode.y - this.startNode.y) * this.progress;
+                
+                ctx.beginPath();
+                ctx.arc(x, y, 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = this.color;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.moveTo(this.startNode.x, this.startNode.y);
+                ctx.lineTo(x, y);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 0.5;
+                ctx.stroke();
+            }
+            update() {
+                this.progress += this.speed;
+                if (this.progress >= 1) {
+                    this.startNode = this.endNode;
+                    this.endNode = nodes[Math.floor(Math.random() * nodes.length)];
+                    this.progress = 0;
+                }
+                this.draw();
+            }
+        }
+
+        function animate() {
+            ctx.fillStyle = 'rgba(10, 20, 35, 0.1)';
+            ctx.fillRect(0, 0, width, height);
+
+            nodes.forEach(node => {
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+                ctx.fill();
+            });
+
+            signals.forEach(signal => signal.update());
+            
+            if (signals.length < 50 && Math.random() > 0.95) {
+                signals.push(new Signal());
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        window.addEventListener('resize', setup);
+        setup();
+        animate();
+    </script>
+</body>
+</html>

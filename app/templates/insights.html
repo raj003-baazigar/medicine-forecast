@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global Insights - MedPredict</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root {
+            --primary-color: #00ffff;
+            --dark-bg: #0a1423;
+            --card-bg: rgba(15, 23, 42, 0.75);
+        }
+        body, html {
+            margin: 0; padding: 0; font-family: 'Poppins', sans-serif;
+            background-color: var(--dark-bg); color: #e0e0e0;
+        }
+        .bg-container {
+            width: 100%; min-height: 100vh;
+            background-image: url("{{ url_for('static', filename='images/Dasboard.jpg') }}");
+            background-position: center; background-size: cover; background-attachment: fixed;
+        }
+        .bg-container::before {
+            content: ""; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(125deg, rgba(10, 20, 35, 0.8), rgba(21, 32, 80, 0.8));
+            z-index: 1;
+        }
+        .navbar {
+            display: flex; justify-content: space-between; align-items: center; padding: 1rem 2rem;
+            background-color: rgba(15, 23, 42, 0.6); border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky; top: 0; z-index: 1001; backdrop-filter: blur(10px);
+        }
+        .navbar-brand { font-size: 1.5rem; font-weight: 600; color: #ffffff; text-decoration: none; }
+        .nav-links a { color: #fff; text-decoration: none; margin-left: 20px; font-weight: 500; }
+        .btn-logout { text-decoration: none; color: #fff; background-color: #dc3545; padding: 8px 16px; border-radius: 5px; }
+        
+        .insights-container {
+            position: relative; z-index: 2;
+            padding: 40px;
+            max-width: 1400px;
+            margin: auto;
+        }
+        .page-header { text-align: center; margin-bottom: 40px; }
+        .page-header h1 { font-size: 2.5rem; color: #fff; margin: 0; }
+        .page-header p { font-size: 1.1rem; color: #a0aec0; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 30px; margin-bottom: 40px; }
+        .stat-card {
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px; padding: 25px; text-align: center;
+        }
+        .stat-value { font-size: 2.5rem; font-weight: 700; color: var(--primary-color); }
+        .stat-label { font-size: 1rem; color: #a0aec0; }
+
+        .charts-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 30px; margin-bottom: 40px; }
+        .chart-card {
+            background: var(--card-bg); backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px; padding: 25px;
+        }
+        .chart-title { font-size: 1.2rem; font-weight: 600; color: #fff; margin-bottom: 20px; }
+        .chart-container { height: 350px; }
+    </style>
+</head>
+<body>
+    <div class="bg-container">
+        <nav class="navbar">
+            <a class="navbar-brand" href="/">MedPredict</a>
+            <div class="nav-links">
+                <a href="/dashboard">Dashboard</a>
+                <a href="/history">History</a>
+                <a href="/map">Map View</a>
+                {% if current_user.is_admin %}<a href="/admin">Admin</a>{% endif %}
+                <a href="/logout" class="btn-logout">Logout</a>
+            </div>
+        </nav>
+
+        <div class="insights-container">
+            <div class="page-header">
+                <h1>Global Insights</h1>
+                <p>An overview of your forecasting activity.</p>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value">{{ total_predictions }}</div><div class="stat-label">Total Predictions</div></div>
+                <div class="stat-card"><div class="stat-value">{{ unique_countries }}</div><div class="stat-label">Countries Analyzed</div></div>
+                <div class="stat-card"><div class="stat-value">{{ unique_medicines }}</div><div class="stat-label">Medicines Tracked</div></div>
+            </div>
+
+            <div class="charts-grid">
+                <div class="chart-card">
+                    <h3 class="chart-title">Top 10 Forecasted Countries</h3>
+                    <div class="chart-container"><canvas id="topCountriesChart"></canvas></div>
+                </div>
+                <div class="chart-card">
+                    <h3 class="chart-title">Demand by Medicine</h3>
+                    <div class="chart-container"><canvas id="demandByMedChart"></canvas></div>
+                </div>
+            </div>
+
+            <div class="chart-card">
+                <h3 class="chart-title">Prediction Activity Over Time</h3>
+                <div class="chart-container" style="height: 300px;"><canvas id="timelineChart"></canvas></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const chartOptions = {
+            responsive: true, maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true, ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } }, x: { ticks: { color: '#a0aec0' }, grid: { color: 'rgba(255, 255, 255, 0.1)' } } },
+            plugins: { legend: { labels: { color: '#a0aec0' } } }
+        };
+
+        // 1. Top Countries Chart
+        new Chart(document.getElementById('topCountriesChart'), {
+            type: 'bar',
+            data: {
+                labels: {{ top_countries_labels | tojson | safe }},
+                datasets: [{ label: 'Number of Predictions', data: {{ top_countries_values | tojson | safe }}, backgroundColor: 'rgba(0, 255, 255, 0.6)', borderColor: 'rgba(0, 255, 255, 1)', borderWidth: 1 }]
+            },
+            options: chartOptions
+        });
+
+        // 2. Demand by Medicine Chart
+        new Chart(document.getElementById('demandByMedChart'), {
+            type: 'doughnut',
+            data: {
+                labels: {{ demand_by_med_labels | tojson | safe }},
+                datasets: [{ data: {{ demand_by_med_values | tojson | safe }}, backgroundColor: ['#00ffff', '#0077ff', '#48bb78', '#f56565', '#ffc107', '#9f7aea'] }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top', labels: { color: '#a0aec0' } } } }
+        });
+
+        // 3. Timeline Chart
+        new Chart(document.getElementById('timelineChart'), {
+            type: 'line',
+            data: {
+                labels: {{ timeline_labels | tojson | safe }},
+                datasets: [{ label: 'Predictions per Month', data: {{ timeline_values | tojson | safe }}, fill: true, backgroundColor: 'rgba(0, 255, 255, 0.2)', borderColor: 'rgba(0, 255, 255, 1)', tension: 0.1 }]
+            },
+            options: chartOptions
+        });
+    </script>
+</body>
+</html>

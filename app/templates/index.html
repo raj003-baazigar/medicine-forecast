@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedPredict - Demand Forecasting</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #3b82f6;
+            --dark-bg: #0a1423;
+            --light-text: #f0f0f0;
+            --secondary-text: #a0aec0;
+        }
+        html {
+            scroll-behavior: smooth;
+        }
+        body, html {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background-color: var(--dark-bg);
+            color: var(--light-text);
+        }
+
+        /* --- Navigation Bar --- */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 2rem;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            transition: background-color 0.3s ease;
+        }
+        .navbar.scrolled {
+            background-color: rgba(15, 23, 42, 0.8);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .navbar-brand {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #ffffff;
+            text-decoration: none;
+        }
+        .nav-buttons a {
+            text-decoration: none;
+            color: #fff;
+            border: 1px solid #fff;
+            padding: 8px 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            border-radius: 50px;
+            margin-left: 15px;
+            transition: all 0.3s ease;
+        }
+        .nav-buttons a.btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        .nav-buttons a:hover {
+            background-color: #fff;
+            color: var(--dark-bg);
+        }
+
+        /* --- Hero Section --- */
+        .hero {
+            height: 100vh;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+        #globe-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        .hero-content {
+            position: relative;
+            z-index: 2;
+        }
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+        }
+        .hero p {
+            font-size: 1.2rem;
+            font-weight: 300;
+            max-width: 700px;
+            margin-bottom: 2rem;
+        }
+        .hero .scroll-down {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 2;
+            font-size: 0.9rem;
+            color: #fff;
+            text-decoration: none;
+            animation: bounce 2s infinite;
+        }
+
+        /* --- Content Sections --- */
+        .content-section {
+            padding: 80px 5%;
+            max-width: 1200px;
+            margin: auto;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .content-section:last-child {
+            border-bottom: none;
+        }
+        .section-header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+        .section-header h2 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        .section-header p {
+            color: var(--secondary-text);
+            max-width: 600px;
+            margin: auto;
+        }
+        .two-column {
+            display: flex;
+            align-items: center;
+            gap: 50px;
+        }
+        .two-column .text-content { flex: 1; }
+        .two-column .image-content { flex: 1; }
+        .two-column img { width: 100%; border-radius: 15px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3); }
+        .two-column h3 { font-size: 1.8rem; margin-bottom: 15px; color: var(--primary-color); }
+        .two-column ul { list-style: none; padding: 0; }
+        .two-column li { padding-left: 25px; position: relative; margin-bottom: 15px; }
+        .two-column li::before {
+            content: '✓';
+            color: var(--primary-color);
+            position: absolute;
+            left: 0;
+            font-weight: bold;
+        }
+
+        /* --- Tech & Team Cards --- */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+        }
+        .card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 25px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2);
+        }
+        .card h4 { margin-top: 0; color: var(--primary-color); }
+        .card p { color: var(--secondary-text); font-size: 0.9rem; line-height: 1.6; }
+
+        .team-card {
+            text-align: center;
+        }
+        .team-card img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 3px solid var(--primary-color);
+            margin-bottom: 20px;
+            object-fit: cover;
+        }
+        .team-card h4 {
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+            color: var(--light-text);
+        }
+        .team-card .role {
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            font-weight: 500;
+        }
+        
+        /* --- NEW: Live Data Ticker Styling --- */
+        .ticker-container {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            height: 200px;
+            overflow: hidden;
+            position: relative;
+            margin-bottom: 40px;
+        }
+        .ticker-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(to bottom, var(--dark-bg), transparent);
+            z-index: 2;
+        }
+        .ticker-container::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: linear-gradient(to top, var(--dark-bg), transparent);
+            z-index: 2;
+        }
+        .ticker-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            animation: scroll-up 30s linear infinite;
+        }
+        .ticker-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 20px;
+            font-size: 0.9rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .ticker-item .value {
+            font-weight: 600;
+        }
+        .ticker-item .value.up { color: #48bb78; }
+        .ticker-item .value.down { color: #f56565; }
+        .ticker-item .details { color: var(--secondary-text); }
+
+        @keyframes scroll-up {
+            from { transform: translateY(0); }
+            to { transform: translateY(-50%); }
+        }
+
+
+        /* --- Footer --- */
+        .footer {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--secondary-text);
+            font-size: 0.9rem;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar" id="navbar">
+        <a href="#" class="navbar-brand">MedPredict</a>
+        <div class="nav-buttons">
+            <a href="/login">Login</a>
+            <a href="/register" class="btn-primary">Register</a>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div id="globe-container"></div>
+        <div class="hero-content">
+            <h1>Demand Forecasting in Critical Health Commodities</h1>
+            <p>An intelligent, data-driven platform to accurately predict health commodity needs, ensuring timely delivery and preventing shortages in critical supply chains.</p>
+        </div>
+        <a href="#problem" class="scroll-down">Learn More &darr;</a>
+    </section>
+
+    <section id="problem" class="content-section">
+        <div class="two-column">
+            <div class="text-content">
+                <h3>The Challenge</h3>
+                <h2>Addressing Critical Gaps in Health Supply Chains</h2>
+                <p>Many countries face significant challenges in managing their health supply chains, leading to critical issues that affect public health.</p>
+                <ul>
+                    <li><b>Shortages & Delays:</b> Essential commodities like vaccines and medicines are often unavailable when needed most.</li>
+                    <li><b>Inaccurate Forecasting:</b> Traditional, manual forecasting methods are prone to error and fail to leverage valuable data insights.</li>
+                    <li><b>Public Health Risks:</b> Delays in the supply chain can have severe consequences, impacting patient care and emergency response.</li>
+                </ul>
+            </div>
+            <div class="image-content">
+                <img src="{{ url_for('static', filename='images/Supply Chain.jpg') }}" alt="Health worker with supplies" onerror="this.onerror=null;this.src='https://placehold.co/600x400/0a1423/FFF?text=Image';">
+            </div>
+        </div>
+    </section>
+
+    <section id="solution" class="content-section">
+        <div class="section-header">
+            <h2>Our Solution</h2>
+            <p>We aim to develop an Ensemble Framework that integrates LSTM architectures with attention-based models to enhance country-specific demand forecasting. Our system uses a Lookback Window method to effectively capture temporal patterns and predict future demand with improved accuracy.</p>
+        </div>
+        
+        <!-- NEW: Live Data Ticker -->
+        <div class="ticker-container">
+            <ul class="ticker-list" id="ticker-list">
+                <li class="ticker-item"><span class="value up">+1,500 units</span> <span class="details">Malaria | Nigeria</span></li>
+                <li class="ticker-item"><span class="value down">-300 units</span> <span class="details">COVID-19 | Germany</span></li>
+                <li class="ticker-item"><span class="value up">+8,200 units</span> <span class="details">AIDS | South Africa</span></li>
+                <li class="ticker-item"><span class="value up">+500 units</span> <span class="details">Influenza | USA</span></li>
+                <li class="ticker-item"><span class="value down">-1,200 units</span> <span class="details">Tuberculosis | India</span></li>
+                <li class="ticker-item"><span class="value up">+2,100 units</span> <span class="details">Dengue | Brazil</span></li>
+                <li class="ticker-item"><span class="value up">+450 units</span> <span class="details">Malaria | Ghana</span></li>
+                <li class="ticker-item"><span class="value down">-700 units</span> <span class="details">AIDS | Thailand</span></li>
+            </ul>
+        </div>
+        
+        <div class="grid-container">
+            <div class="card">
+                <h4>ARIMA / SARIMA</h4>
+                <p>Utilized for its strength in univariate time series forecasting, capturing trends and seasonality in historical data.</p>
+            </div>
+            <div class="card">
+                <h4>XGBoost</h4>
+                <p>A powerful gradient boosting algorithm that handles non-linear relationships in multivariate forecasting.</p>
+            </div>
+            <div class="card">
+                <h4>LSTM Network</h4>
+                <p>A deep learning model (Long Short-Term Memory) specifically designed for sequence prediction and capturing long-term dependencies.</p>
+            </div>
+            <div class="card">
+                <h4>Random Forest</h4>
+                <p>An ensemble model used for its robustness, high accuracy, and ability to provide interpretable predictions.</p>
+            </div>
+        </div>
+    </section>
+    
+    <!-- Rest of the sections (Analysis, Team, Footer) are the same -->
+    <section id="analysis" class="content-section">
+        <div class="section-header">
+            <h2>Technical Approach & Analysis</h2>
+            <p>Our methodology is rooted in advanced time-series analysis and ensemble learning to provide the most accurate forecasts possible.</p>
+        </div>
+        <div class="two-column">
+            <div class="text-content">
+                <h3>Core Methodology</h3>
+                <ul>
+                    <li><b>Ensemble Framework:</b> We don't rely on a single model. Our system combines the strengths of multiple algorithms to produce a more robust and accurate final prediction.</li>
+                    <li><b>LSTM with Attention:</b> At the core is a Long Short-Term Memory (LSTM) network, perfect for time-series data, enhanced with an attention mechanism to focus on important historical data.</li>
+                    <li><b>Lookback Window:</b> The model analyzes a "window" of past data to effectively capture trends, seasonality, and complex temporal patterns.</li>
+                </ul>
+            </div>
+            <div class="text-content">
+                <h3>Analytical Workflow</h3>
+                <div class="workflow-container" id="workflow">
+                    <div class="workflow-step"><div class="icon">📊</div><h5>Data Ingestion</h5><p>Collect and clean historical supply chain data.</p></div>
+                    <div class="workflow-step"><div class="icon">⚙️</div><h5>Preprocessing</h5><p>Feature engineering and data normalization.</p></div>
+                    <div class="workflow-step"><div class="icon">🧠</div><h5>Model Training</h5><p>Train the ensemble of forecasting models.</p></div>
+                    <div class="workflow-step"><div class="icon">📈</div><h5>Prediction</h5><p>Generate and visualize future demand forecasts.</p></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="team" class="content-section">
+        <div class="section-header">
+            <h2>Meet the Team</h2>
+            <p>This project is brought to you by a dedicated team from CHRIST (Deemed to be University).</p>
+        </div>
+        <div class="grid-container">
+            <div class="card team-card">
+                <img src="{{ url_for('static', filename='images/Manish.jpeg') }}" alt="Manish Karautia">
+                <h4>Manish Karautia</h4>
+                <p class="role">Developing the complete Machine Learning model and predictive analytics core.</p>
+            </div>
+            <div class="card team-card">
+                 <img src="{{ url_for('static', filename='images/Amrutha.jpeg') }}" alt="Amruthavarshini Sumanohar">
+                <h4>Amruthavarshini S.</h4>
+                <p class="role">Leading the research paper, contributing to the ML model, and defining the project overview.</p>
+            </div>
+            <div class="card team-card">
+                <img src="{{ url_for('static', filename='images/Raj.png') }}" alt="Raj Agrawal">
+                <h4>Raj Agrawal</h4>
+                <p class="role">Responsible for the full-stack web development and contributing to the research paper.</p>
+            </div>
+        </div>
+    </section>
+
+    <footer class="footer">
+        <p>&copy; 2025 MedPredict. All rights reserved. A project by students of CHRIST (Deemed to be University).</p>
+    </footer>
+
+    <script>
+        // --- Navbar Scroll Effect ---
+        const navbar = document.getElementById('navbar');
+        window.onscroll = function() {
+            if (window.scrollY > 50) {
+                navbar.classList.add('scrolled');
+            } else {
+                navbar.classList.remove('scrolled');
+            }
+        };
+
+        // --- Interactive 3D Globe ---
+        // ... (Globe initialization and animation code is the same) ...
+        const container = document.getElementById('globe-container');
+        let scene, camera, renderer, globe, stars;
+        let mouseDown = false, mouseX = 0, mouseY = 0;
+        function initGlobe() {
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(75, container.clientWidth / container.clientHeight, 0.1, 1000);
+            camera.position.z = 15;
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+            const globeGeometry = new THREE.SphereGeometry(5, 64, 64);
+            const globeMaterial = new THREE.PointsMaterial({ color: 0x3b82f6, size: 0.05 });
+            globe = new THREE.Points(globeGeometry, globeMaterial);
+            scene.add(globe);
+            const starGeometry = new THREE.BufferGeometry();
+            const starVertices = [];
+            for (let i = 0; i < 10000; i++) {
+                const x = (Math.random() - 0.5) * 2000;
+                const y = (Math.random() - 0.5) * 2000;
+                const z = (Math.random() - 0.5) * 2000;
+                if(Math.sqrt(x*x + y*y + z*z) > 100) starVertices.push(x, y, z);
+            }
+            starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starVertices, 3));
+            const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 0.1 });
+            stars = new THREE.Points(starGeometry, starMaterial);
+            scene.add(stars);
+            container.addEventListener('mousedown', onMouseDown);
+            container.addEventListener('mouseup', onMouseUp);
+            container.addEventListener('mousemove', onMouseMove);
+            window.addEventListener('resize', onWindowResize);
+        }
+        function onMouseDown(event) { mouseDown = true; mouseX = event.clientX; mouseY = event.clientY; }
+        function onMouseUp() { mouseDown = false; }
+        function onMouseMove(event) { if (mouseDown) { const deltaX = event.clientX - mouseX; const deltaY = event.clientY - mouseY; globe.rotation.y += deltaX * 0.005; globe.rotation.x += deltaY * 0.005; mouseX = event.clientX; mouseY = event.clientY; } }
+        function onWindowResize() { camera.aspect = container.clientWidth / container.clientHeight; camera.updateProjectionMatrix(); renderer.setSize(container.clientWidth, container.clientHeight); }
+        function animateGlobe() { requestAnimationFrame(animateGlobe); if (!mouseDown) { globe.rotation.y += 0.0005; } stars.rotation.y += 0.0001; renderer.render(scene, camera); }
+        initGlobe();
+        animateGlobe();
+
+        // --- NEW: Ticker and Workflow Animation Logic ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Ticker seamless scroll
+            const tickerList = document.getElementById('ticker-list');
+            const items = tickerList.innerHTML;
+            tickerList.innerHTML += items; // Duplicate items for seamless loop
+
+            // Workflow scroll animation
+            const workflow = document.getElementById('workflow');
+            if (workflow) {
+                const observer = new IntersectionObserver((entries) => {
+                    entries.forEach(entry => {
+                        if (entry.isIntersecting) {
+                            entry.target.classList.add('animate');
+                        }
+                    });
+                }, {
+                    threshold: 0.5
+                });
+                observer.observe(workflow);
+            }
+        });
+        
+    </script>
+
+</body>
+</html>
+
+
+
